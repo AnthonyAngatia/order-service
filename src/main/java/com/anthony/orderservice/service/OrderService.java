@@ -19,21 +19,20 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
 
-    public void createOrder(List<OrderItemsDto> orderRequest){
+    public Order createOrder(List<OrderItemsDto> orderRequest) {
         Order order = new Order();
         List<OrderItem> orderItems = orderRequest
                 .stream().map(this::mapDtoToOrderItem).toList();
         order.setOrderItemList(orderItems);
         log.info("Order {}", order);
         order = orderRepository.save(order);
-        log.info("Order afrer calling save {}", order);
+        return order;
 
     }
 
-    public List<Order> getAllRecords(){
+    public List<Order> getAllRecords() {
         return (List<Order>) orderRepository.findAll();
     }
-
 
 
     private OrderItem mapDtoToOrderItem(OrderItemsDto orderItemsDto) {
@@ -42,5 +41,22 @@ public class OrderService {
         orderItem.setName(orderItemsDto.getName());
         orderItem.setDescription(orderItemsDto.getDescription());
         return orderItem;
+    }
+
+    public Order updateOrder(Long orderId, List<OrderItemsDto> orderItemsDtoList) {
+        log.info("Updating order "+ orderId, orderItemsDtoList);
+        log.info("Order id " + orderId);
+        var order = orderRepository.findById(orderId);
+        log.info("Optional object: {}", order);
+
+        if (order.isPresent()) {
+            log.info("Order is: {}", order.get().getOrderID());
+            List<OrderItem> orderItems = orderItemsDtoList.stream().map(this::mapDtoToOrderItem).toList();
+            order.get().setOrderItemList(orderItems);
+            log.info("Updating this object: {}", order.get());
+            return orderRepository.save(order.get());
+        }
+        log.info("Order is empty");
+        return null;
     }
 }
