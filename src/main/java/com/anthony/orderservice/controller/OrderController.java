@@ -2,6 +2,9 @@ package com.anthony.orderservice.controller;
 
 import com.anthony.orderservice.dto.OrderItemsDto;
 import com.anthony.orderservice.dto.ResponseWrapper;
+import com.anthony.orderservice.model.Order;
+import com.anthony.orderservice.model.OrderItem;
+import com.anthony.orderservice.repository.OrderRepository;
 import com.anthony.orderservice.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -18,9 +21,11 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderRepository orderRepository;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, OrderRepository orderRepository) {
         this.orderService = orderService;
+        this.orderRepository = orderRepository;
     }
 
     @PostMapping
@@ -48,13 +53,28 @@ public class OrderController {
     }
 
     @PutMapping("/{productId}")
-    public ResponseEntity<ResponseWrapper> updateOrder(@PathVariable Long productId, @RequestBody List<OrderItemsDto> orderItemsDtoList){
-        var order = orderService.updateOrder(productId, orderItemsDtoList);
+    public ResponseEntity<ResponseWrapper> updateOrder(@PathVariable Long productId, @RequestBody List<OrderItem> orderItems){
+        Order existingOrder = orderRepository.findById(productId)
+                .orElseThrow(()-> new RuntimeException("Resource with id: "+ productId + " was not found"));
+        existingOrder.setOrderItemList(orderItems);
+        orderRepository.save(existingOrder);
         ResponseWrapper responseWrapper = ResponseWrapper.builder()
                 .statusCode(HttpStatus.OK.value())
-                .statusDescription("Order updated successfully")
-                .data(order)
+                .statusDescription("Order updated Successfully")
+                .data(existingOrder)
                 .build();
         return new ResponseEntity<>(responseWrapper, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{orderId}")
+    public ResponseEntity<ResponseWrapper> deleteOrder(@PathVariable Long orderId){
+        Order existingOrder = orderRepository.findById(orderId)
+                        .orElseThrow(()-> new RuntimeException("Resource not found"));
+        orderRepository.deleteById(orderId);
+        ResponseWrapper responseWrapper = ResponseWrapper.builder()
+                .statusCode(HttpStatus.OK.value())
+                .statusDescription("Order updated Successfully")
+                .build();
+        return new ResponseEntity<>(responseWrapper, HttpStatus.NO_CONTENT);
     }
 }
