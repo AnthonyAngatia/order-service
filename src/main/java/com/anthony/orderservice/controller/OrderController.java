@@ -6,6 +6,7 @@ import com.anthony.orderservice.model.Order;
 import com.anthony.orderservice.model.OrderItem;
 import com.anthony.orderservice.repository.OrderRepository;
 import com.anthony.orderservice.service.OrderService;
+import com.anthony.orderservice.utils.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -48,6 +49,18 @@ public class OrderController {
                 .statusCode(HttpStatus.OK.value())
                 .statusDescription("Orders retrieved successfully")
                 .data(orders)
+                .build();
+        return new ResponseEntity<>(responseWrapper, HttpStatus.OK);
+    }
+
+    @GetMapping("/{orderId}")
+    private ResponseEntity<ResponseWrapper> getSingleOrder(@PathVariable Long orderId){
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(()-> new ResourceNotFoundException("Resource with ID:" + orderId + " was not found"));
+        ResponseWrapper responseWrapper = ResponseWrapper.builder()
+                .statusCode(HttpStatus.OK.value())
+                .statusDescription("Fetch single order")
+                .data(order)
                 .build();
         return new ResponseEntity<>(responseWrapper, HttpStatus.OK);
     }
