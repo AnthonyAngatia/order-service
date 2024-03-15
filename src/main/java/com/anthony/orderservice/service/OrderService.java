@@ -1,15 +1,20 @@
 package com.anthony.orderservice.service;
 
 import com.anthony.orderservice.dto.OrderItemsDto;
+import com.anthony.orderservice.dto.Product;
 import com.anthony.orderservice.model.Order;
 import com.anthony.orderservice.model.OrderItem;
 import com.anthony.orderservice.repository.OrderRepository;
+import com.anthony.orderservice.utils.ResourceNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,8 +25,28 @@ import java.util.List;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final WebClient webClient;
+    private final String baseUrl = "http://localhost:8080/";
 
     public Order createOrder(List<OrderItemsDto> orderRequest) {
+        // 1. Check if there are sufficient products to fulfill the order
+//        this.baseUrl;
+        int id = 0;
+        var publisher = webClient.get().uri(baseUrl+"/products")
+                .retrieve()
+                .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(),
+                        clientResponse -> handleErrorResponse(clientResponse.statusCode()))
+                .bodyToFlux(Product.class)
+                .onErrorResume(Exception.class, e -> Flux.empty());
+        ArrayList<Product> arr = new ArrayList<>();
+        publisher.collectList().subscribe(product -> {
+            System.out.println("Retrieved product");
+            System.out.println(product.toString());
+
+        });
+        log.info("Returned array is {}", arr);
+        // 2. If true, fulfill the order
+        // 3. If false, return a message with the number of items remaining
         Order order = new Order();
         List<OrderItem> orderItems = orderRequest
                 .stream().map(this::mapDtoToOrderItem).toList();
@@ -30,6 +55,11 @@ public class OrderService {
         order = orderRepository.save(order);
         return order;
 
+    }
+
+    private Mono<? extends Throwable> handleErrorResponse(HttpStatusCode httpStatusCode) {
+        System.out.println("Returning create order");
+        return Mono.error(new ResourceNotFoundException("Error retrieving product details: "+ httpStatusCode));
     }
 
     public List<Order> getAllRecords() {

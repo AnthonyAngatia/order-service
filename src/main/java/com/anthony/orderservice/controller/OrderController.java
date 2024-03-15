@@ -31,7 +31,7 @@ public class OrderController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    private ResponseEntity<?> saveOrder(@RequestBody @Valid List<OrderItemsDto> orderItemsDtoList){
+    private ResponseEntity<?> createOrder(@RequestBody @Valid List<OrderItemsDto> orderItemsDtoList){
         log.info("OrderItemsDtoList {}", orderItemsDtoList);
         var order = orderService.createOrder(orderItemsDtoList);
         ResponseWrapper responseWrapper = ResponseWrapper.builder()
