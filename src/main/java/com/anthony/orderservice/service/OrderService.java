@@ -38,22 +38,23 @@ public class OrderService {
                         clientResponse -> handleErrorResponse(clientResponse.statusCode()))
                 .bodyToFlux(Product.class)
                 .onErrorResume(Exception.class, e -> Flux.empty());
-        ArrayList<Product> arr = new ArrayList<>();
-        publisher.collectList().subscribe(product -> {
+        publisher.collectList().subscribe(productList -> {
             System.out.println("Retrieved product");
-            System.out.println(product.toString());
-
+            System.out.println(productList.toString());
+            if(productList.size() >= orderRequest.size()){
+                // Create order
+                Order order = new Order();
+                List<OrderItem> orderItems = orderRequest
+                        .stream().map(this::mapDtoToOrderItem).toList();
+                order.setOrderItemList(orderItems);
+                log.info("Order {}", order);
+                order = orderRepository.save(order);
+//                return order;
+            }else{
+                System.out.println("Not sufficient items remaining. Only "+ productList.size() + " items remaining");
+            }
         });
-        log.info("Returned array is {}", arr);
-        // 2. If true, fulfill the order
-        // 3. If false, return a message with the number of items remaining
-        Order order = new Order();
-        List<OrderItem> orderItems = orderRequest
-                .stream().map(this::mapDtoToOrderItem).toList();
-        order.setOrderItemList(orderItems);
-        log.info("Order {}", order);
-        order = orderRepository.save(order);
-        return order;
+        return null;
 
     }
 
